@@ -189,11 +189,11 @@ namespace WmHelp.XmlGrid
 
     public class XmlGroupCell : GridCellGroup
     {
-        public XmlElement Node { get; private set; }        
+        public XmlNode Node { get; private set; }        
 
         public XmlGroupCell(XmlNode node)
         {
-            Node = (XmlElement)node;
+            Node = node;
         }
 
         public override string Text
@@ -213,7 +213,7 @@ namespace WmHelp.XmlGrid
             get
             {
                 StringBuilder sb = new StringBuilder();
-                if (Node != null && Node.HasAttributes)
+                if (Node != null && Node is XmlElement && ((XmlElement)Node).HasAttributes)
                     for (int i = 0; i < Node.Attributes.Count; i++)
                     {
                         if (sb.Length > 150)
