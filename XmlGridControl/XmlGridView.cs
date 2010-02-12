@@ -677,6 +677,44 @@ namespace WmHelp.XmlGrid
             return cell;
         }
 
+        private void FindColumnMaxWidth(GridCellGroup cell, Rectangle cellRect, Graphics g, int left, int right, ref int iMaxWidth)
+        {
+            if (cell.Expanded)
+            {
+                Rectangle rc = Rectangle.FromLTRB(
+                   cellRect.Right - cell.TableWidth - cell.TablePadding,
+                   cellRect.Bottom - cell.TableHeight,
+                   cellRect.Right - cell.TablePadding,
+                   cellRect.Bottom);
+                int rcLeft = rc.Left;
+                for (int k = 0; k < cell.Table.Width; k++)
+                {
+                    if (rcLeft > right)
+                        break;
+                    int rcRight = rcLeft + cell.Table.ColumnsWidth[k];
+                    if (rcLeft <= left && right <= rcRight)
+                    {
+                        int rcTop = rc.Top;
+                        for (int s = 0; s < cell.Table.Height; s++)
+                        {
+                            if (cell.Table[k, s].IsGroup)
+                            {
+                                Rectangle rc2 = Rectangle.FromLTRB(rcLeft, rcTop, rcRight,
+                                    rcTop + cell.Table.RowHeight[s]);
+                                FindColumnMaxWidth((GridCellGroup)cell.Table[k, s], rc2, g, left, right, ref iMaxWidth);
+                            }
+                            else
+                                if (rcLeft == left && rcRight == right)
+                                    iMaxWidth = Math.Max(iMaxWidth, 2 * _drawInfo.cxChar +
+                                        cell.Table[k, s].GetTextWidth(this, g, Font, _drawInfo));
+                            rcTop += cell.Table.RowHeight[s];
+                        }
+                    }
+                    rcLeft = rcRight;
+                }
+            }
+        }
+
         public Rectangle FindCellRect(GridCell cell)
         {
             Rectangle cellRect = new Rectangle(0, 0, 
@@ -1221,14 +1259,12 @@ namespace WmHelp.XmlGrid
             if (_resizeFlag)
             {
                 int iMaxWidth = _columnsWidth[_columnIndex];
+                int left = RangeWidth(0, _columnIndex);
+                int right = iMaxWidth + left;
+                Rectangle cellRect = new Rectangle(0, 0,
+                    _drawInfo.iMaxWidth, _drawInfo.iHeight);
                 using (Graphics g = CreateGraphics())
-                    for (int s = 0; s < _rootCell.Table.Height; s++)
-                    {
-                        GridCell cell = _rootCell.Table[_columnIndex, s];
-                        if (!cell.IsGroup)
-                            iMaxWidth = Math.Max(iMaxWidth, 2 * _drawInfo.cxChar + 
-                                cell.GetTextWidth(this, g, Font, _drawInfo));
-                    }
+                    FindColumnMaxWidth(_rootCell, cellRect, g, left, right, ref iMaxWidth);
                 _columnsWidth[_columnIndex] = iMaxWidth;
                 UpdateWidth();
                 if (AutoHeightCells)
